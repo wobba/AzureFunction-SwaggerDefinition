@@ -35,7 +35,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             doc.host = req.RequestUri.Authority;
             doc.basePath = "/";
             doc.schemes = new[] { "https" };
-            if (doc.host == "127.0.0.1" || doc.host == "localhost")
+            if (doc.host.Contains("127.0.0.1") || doc.host.Contains("localhost"))
             {
                 doc.schemes = new[] { "http" };
             }
@@ -189,12 +189,33 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
 
                 if (returnType.Namespace == "System")
                 {
+                    // Warning:
+                    // Allthough valid, it's always better to wrap single values in an object
+                    // Returning { Value = "foo" } is better than just "foo"
                     SetParameterType(returnType, responseDef.schema, null);
                 }
                 else
                 {
-                    AddToExpando(responseDef.schema, "$ref", "#/definitions/" + returnType.Name);
-                    AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType);
+                    string name = returnType.Name;
+                    if (returnType.IsGenericType)
+                    {
+                        var realType = returnType.GetGenericArguments()[0];
+                        if (realType.Namespace == "System")
+                        {
+                            dynamic inlineSchema = GetObjectSchemaDefinition(null, returnType);
+                            responseDef.schema = inlineSchema;
+                        }
+                        else
+                        {
+                            AddToExpando(responseDef.schema, "$ref", "#/definitions/" + name);
+                            AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType);
+                        }
+                    }
+                    else
+                    {
+                        AddToExpando(responseDef.schema, "$ref", "#/definitions/" + name);
+                        AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType);
+                    }
                 }
             }
             AddToExpando(responses, "200", responseDef);
@@ -232,7 +253,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
                 }
                 else if (hasUriAttribute && parameter.ParameterType.Namespace != "System")
                 {
-                    AddObjectProperties(parameter.ParameterType, parameter.Name, parameterSignatures, doc);
+                    AddObjectProperties(parameter.ParameterType, "", parameterSignatures, doc);
                 }
                 else
                 {
@@ -261,14 +282,19 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             var publicProperties = t.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             foreach (PropertyInfo property in publicProperties)
             {
+                if (!string.IsNullOrWhiteSpace(parentName))
+                {
+                    parentName += ".";
+                }
                 if (property.PropertyType.Namespace != "System")
                 {
-                    AddObjectProperties(property.PropertyType, parentName + "." + property.Name, parameterSignatures, doc);
+                    AddObjectProperties(property.PropertyType, parentName + property.Name, parameterSignatures, doc);
                 }
                 else
                 {
                     dynamic opParam = new ExpandoObject();
-                    opParam.name = parentName + "." + property.Name;
+
+                    opParam.name = parentName + property.Name;
                     opParam.@in = "query";
                     opParam.required = property.GetCustomAttributes().Any(attr => attr is RequiredAttribute);
                     SetParameterType(property.PropertyType, opParam, doc.definitions);
@@ -282,18 +308,33 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             dynamic objDef;
             if (!definitions.TryGetValue(parameterType.Name, out objDef))
             {
-                objDef = new ExpandoObject();
-                objDef.type = "object";
-                objDef.properties = new ExpandoObject();
-                var publicProperties = parameterType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-                foreach (PropertyInfo property in publicProperties)
-                {
-                    dynamic propDef = new ExpandoObject();
-                    SetParameterType(property.PropertyType, propDef, definitions);
-                    AddToExpando(objDef.properties, property.Name, propDef);
-                }
+                objDef = GetObjectSchemaDefinition(definitions, parameterType);
                 definitions.Add(parameterType.Name, objDef);
             }
+        }
+
+        private static dynamic GetObjectSchemaDefinition(IDictionary<string, object> definitions, Type parameterType)
+        {
+            dynamic objDef = new ExpandoObject();
+            objDef.type = "object";
+            objDef.properties = new ExpandoObject();
+            var publicProperties = parameterType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            List<string> requiredProperties = new List<string>();
+            foreach (PropertyInfo property in publicProperties)
+            {
+                if (property.GetCustomAttributes().Any(attr => attr is RequiredAttribute))
+                {
+                    requiredProperties.Add(property.Name);
+                }
+                dynamic propDef = new ExpandoObject();
+                SetParameterType(property.PropertyType, propDef, definitions);
+                AddToExpando(objDef.properties, property.Name, propDef);
+            }
+            if (requiredProperties.Count > 0)
+            {
+                objDef.required = requiredProperties;
+            }
+            return objDef;
         }
 
         private static void SetParameterType(Type parameterType, dynamic opParam, dynamic definitions)
