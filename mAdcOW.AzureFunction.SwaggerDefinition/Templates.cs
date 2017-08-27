@@ -32,6 +32,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
 
         /// <summary>
         /// Return type specified directly
+        /// Use the Display attribute to annotate a function title and description to show in for example Microsoft Flow
         /// </summary>
         [FunctionName("TemplatePost2")]
         [Display(Name = "Test Post", Description = "This is a longer description")]
