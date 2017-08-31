@@ -339,42 +339,58 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
 
         private static void SetParameterType(Type parameterType, dynamic opParam, dynamic definitions)
         {
-            if (parameterType.Namespace == "System")
+            if (parameterType.Namespace == "System" || (parameterType.IsGenericType && parameterType.GetGenericArguments()[0].Namespace == "System"))
             {
+                var setObject = opParam;
+                if (parameterType.IsArray)
+                {
+                    opParam.type = "array";
+                    opParam.items = new ExpandoObject();
+                    setObject = opParam.items;
+                    parameterType = parameterType.GetElementType();
+                }
+                if (parameterType.IsGenericType)
+                {
+                    opParam.type = "array";
+                    opParam.items = new ExpandoObject();
+                    setObject = opParam.items;
+                    parameterType = parameterType.GetGenericArguments()[0];
+                }
+
                 switch (Type.GetTypeCode(parameterType))
                 {
                     case TypeCode.Int32:
-                        opParam.format = "int32";
-                        opParam.type = "integer";
+                        setObject.format = "int32";
+                        setObject.type = "integer";
                         break;
                     case TypeCode.Int64:
-                        opParam.format = "int64";
-                        opParam.type = "integer";
+                        setObject.format = "int64";
+                        setObject.type = "integer";
                         break;
                     case TypeCode.Single:
-                        opParam.format = "float";
-                        opParam.type = "number";
+                        setObject.format = "float";
+                        setObject.type = "number";
                         break;
                     case TypeCode.Double:
-                        opParam.format = "double";
-                        opParam.type = "number";
+                        setObject.format = "double";
+                        setObject.type = "number";
                         break;
                     case TypeCode.String:
-                        opParam.type = "string";
+                        setObject.type = "string";
                         break;
                     case TypeCode.Byte:
-                        opParam.format = "byte";
-                        opParam.type = "string";
+                        setObject.format = "byte";
+                        setObject.type = "string";
                         break;
                     case TypeCode.Boolean:
-                        opParam.type = "boolean";
+                        setObject.type = "boolean";
                         break;
                     case TypeCode.DateTime:
-                        opParam.format = "date";
-                        opParam.type = "string";
+                        setObject.format = "date";
+                        setObject.type = "string";
                         break;
                     default:
-                        opParam.type = "string";
+                        setObject.type = "string";
                         break;
                 }
             }
