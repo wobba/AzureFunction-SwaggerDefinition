@@ -119,6 +119,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
 
         public class BodyClass
         {
+            [Display(Description = "This is a string parameter")]
             public string AString { get; set; }
 
             [Required]

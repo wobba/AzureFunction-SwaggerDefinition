@@ -134,9 +134,6 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             return paths;
         }
 
-        /// <summary>
-        /// Max 80 characters in summary/title
-        /// </summary>
         private static string GetFunctionDescription(MethodInfo methodInfo, string funcName)
         {
             var displayAttr = (DisplayAttribute)methodInfo.GetCustomAttributes(typeof(DisplayAttribute), false)
@@ -144,6 +141,9 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             return !string.IsNullOrWhiteSpace(displayAttr?.Description) ? displayAttr.Description : $"This function will run {funcName}";
         }
 
+        /// <summary>
+        /// Max 80 characters in summary/title
+        /// </summary>
         private static string GetFunctionName(MethodInfo methodInfo, string funcName)
         {
             var displayAttr = (DisplayAttribute)methodInfo.GetCustomAttributes(typeof(DisplayAttribute), false)
@@ -153,6 +153,13 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
                 return displayAttr.Name.Length > 80 ? displayAttr.Name.Substring(0, 80) : displayAttr.Name;
             }
             return $"Run {funcName}";
+        }
+
+        private static string GetPropertyDescription(PropertyInfo propertyInfo)
+        {
+            var displayAttr = (DisplayAttribute)propertyInfo.GetCustomAttributes(typeof(DisplayAttribute), false)
+                .SingleOrDefault();
+            return !string.IsNullOrWhiteSpace(displayAttr?.Description) ? displayAttr.Description : $"This returns {propertyInfo.PropertyType.Name}";
         }
 
         private static dynamic GenerateResponseParameterSignature(MethodInfo methodInfo, dynamic doc)
@@ -297,6 +304,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
                     opParam.name = parentName + property.Name;
                     opParam.@in = "query";
                     opParam.required = property.GetCustomAttributes().Any(attr => attr is RequiredAttribute);
+                    opParam.description = GetPropertyDescription(property);
                     SetParameterType(property.PropertyType, opParam, doc.definitions);
                     parameterSignatures.Add(opParam);
                 }
@@ -327,6 +335,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
                     requiredProperties.Add(property.Name);
                 }
                 dynamic propDef = new ExpandoObject();
+                propDef.description = GetPropertyDescription(property);
                 SetParameterType(property.PropertyType, propDef, definitions);
                 AddToExpando(objDef.properties, property.Name, propDef);
             }
@@ -411,4 +420,5 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             ((IDictionary<string, object>)obj).Add(name, value);
         }
     }
+}
 }
