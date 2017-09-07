@@ -30,7 +30,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             dynamic doc = new ExpandoObject();
             doc.swagger = "2.0";
             doc.info = new ExpandoObject();
-            doc.info.title = assembly.DefinedTypes.First().Namespace;
+            doc.info.title = assembly.GetName().Name;
             doc.info.version = "1.0.0";
             doc.host = req.RequestUri.Authority;
             doc.basePath = "/";
@@ -403,6 +403,11 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
                         break;
                 }
             }
+            else if (parameterType.IsEnum)
+            {
+                opParam.type = "string";
+                opParam.@enum = Enum.GetNames(parameterType);
+            }
             else if (definitions != null)
             {
                 AddToExpando(opParam, "$ref", "#/definitions/" + parameterType.Name);
@@ -420,5 +425,4 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             ((IDictionary<string, object>)obj).Add(name, value);
         }
     }
-}
 }
