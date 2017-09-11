@@ -348,25 +348,27 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
 
         private static void SetParameterType(Type parameterType, dynamic opParam, dynamic definitions)
         {
-            if (parameterType.Namespace == "System" || (parameterType.IsGenericType && parameterType.GetGenericArguments()[0].Namespace == "System"))
-            {
-                var setObject = opParam;
-                if (parameterType.IsArray)
-                {
-                    opParam.type = "array";
-                    opParam.items = new ExpandoObject();
-                    setObject = opParam.items;
-                    parameterType = parameterType.GetElementType();
-                }
-                if (parameterType.IsGenericType)
-                {
-                    opParam.type = "array";
-                    opParam.items = new ExpandoObject();
-                    setObject = opParam.items;
-                    parameterType = parameterType.GetGenericArguments()[0];
-                }
+            var inputType = parameterType;
 
-                switch (Type.GetTypeCode(parameterType))
+            var setObject = opParam;
+            if (inputType.IsArray)
+            {
+                opParam.type = "array";
+                opParam.items = new ExpandoObject();
+                setObject = opParam.items;
+                parameterType = parameterType.GetElementType();
+            }
+            else if (inputType.IsGenericType)
+            {
+                opParam.type = "array";
+                opParam.items = new ExpandoObject();
+                setObject = opParam.items;
+                parameterType = parameterType.GetGenericArguments()[0];
+            }
+
+            if (inputType.Namespace == "System" || (inputType.IsGenericType && inputType.GetGenericArguments()[0].Namespace == "System"))
+            {
+                switch (Type.GetTypeCode(inputType))
                 {
                     case TypeCode.Int32:
                         setObject.format = "int32";
@@ -403,14 +405,14 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
                         break;
                 }
             }
-            else if (parameterType.IsEnum)
+            else if (inputType.IsEnum)
             {
                 opParam.type = "string";
-                opParam.@enum = Enum.GetNames(parameterType);
+                opParam.@enum = Enum.GetNames(inputType);
             }
             else if (definitions != null)
             {
-                AddToExpando(opParam, "$ref", "#/definitions/" + parameterType.Name);
+                AddToExpando(setObject, "$ref", "#/definitions/" + parameterType.Name);
                 AddParameterDefinition((IDictionary<string, object>)definitions, parameterType);
             }
         }
