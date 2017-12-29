@@ -236,6 +236,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             {
                 if (parameter.ParameterType == typeof(HttpRequestMessage)) continue;
                 if (parameter.ParameterType == typeof(TraceWriter)) continue;
+                if (parameter.ParameterType == typeof(Microsoft.Extensions.Logging.ILogger)) continue;
 
                 bool hasUriAttribute = parameter.GetCustomAttributes().Any(attr => attr is FromUriAttribute);
 
