@@ -424,7 +424,20 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
 
         public static void AddToExpando(ExpandoObject obj, string name, object value)
         {
-            ((IDictionary<string, object>)obj).Add(name, value);
+            if (((IDictionary<string, object>)obj).ContainsKey(name))
+            {
+                // Fix for functions with same routes but different verbs
+                var existing = (IDictionary<string, object>)((IDictionary<string, object>)obj)[name];
+                var append = (IDictionary<string, object>)value;
+                foreach (KeyValuePair<string, object> keyValuePair in append)
+                {
+                    existing.Add(keyValuePair);
+                }
+            }
+            else
+            {
+                ((IDictionary<string, object>)obj).Add(name, value);
+            }
         }
     }
 }

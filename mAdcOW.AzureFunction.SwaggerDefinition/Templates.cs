@@ -61,7 +61,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             {
                 Content = new ObjectContent<Result<bool>>(new Result<bool>(false), new JsonMediaTypeFormatter())
             });
-        }
+        }    
 
         /// <summary>
         /// If returning the result explicitly, there is no need to annotate with ResponseType
@@ -102,6 +102,28 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             TraceWriter log)
         {
             log.Info("C# HTTP trigger function processed a request.");
+        }
+
+        [FunctionName("TemplateRoute1")]
+        public static async Task<HttpResponseMessage> Route1(
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "MyRoute")] [FromUri]string id, TraceWriter log)
+        {
+            log.Info("C# HTTP trigger function processed a request.");
+            return await Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ObjectContent<Result<string>>(new Result<string>("GET"), new JsonMediaTypeFormatter())
+            });
+        }
+
+        [FunctionName("TemplateRoute2")]
+        public static async Task<HttpResponseMessage> Route2(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "MyRoute")]string id, TraceWriter log)
+        {
+            log.Info("C# HTTP trigger function processed a request.");
+            return await Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ObjectContent<Result<string>>(new Result<string>("POST"), new JsonMediaTypeFormatter())
+            });
         }
 
         /// <summary>
