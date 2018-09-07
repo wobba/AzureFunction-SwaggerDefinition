@@ -10,7 +10,9 @@ using System.Net.Http.Formatting;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Web.Http;
-using System.Web.Http.Description;
+using Microsoft.AspNetCore.Http;
+//using System.Web.Http.Description;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Host;
@@ -23,7 +25,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
         const string SwaggerFunctionName = "Swagger";
 
         [FunctionName(SwaggerFunctionName)]
-        [ResponseType(typeof(void))]
+        [ProducesResponseType(200, Type=typeof(void))]
         public static async Task<HttpResponseMessage> RunAsync([HttpTrigger(AuthorizationLevel.Function, "get")]HttpRequestMessage req)
         {
             var assembly = Assembly.GetExecutingAssembly();
@@ -180,11 +182,11 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             }
             if (returnType == typeof(HttpResponseMessage))
             {
-                var responseTypeAttr = (ResponseTypeAttribute)methodInfo
-                    .GetCustomAttributes(typeof(ResponseTypeAttribute), false).FirstOrDefault();
+                var responseTypeAttr = (ProducesResponseTypeAttribute)methodInfo
+                    .GetCustomAttributes(typeof(ProducesResponseTypeAttribute), false).FirstOrDefault();
                 if (responseTypeAttr != null)
                 {
-                    returnType = responseTypeAttr.ResponseType;
+                    returnType = responseTypeAttr.Type;
                 }
                 else
                 {
@@ -245,7 +247,8 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             var parameterSignatures = new List<object>();
             foreach (ParameterInfo parameter in methodInfo.GetParameters())
             {
-                if (parameter.ParameterType == typeof(HttpRequestMessage)) continue;
+                if (parameter.ParameterType == typeof(HttpRequest)) continue;
+                if (parameter.ParameterType == typeof(ExecutionContext)) continue;
                 if (parameter.ParameterType == typeof(TraceWriter)) continue;
                 if (parameter.ParameterType == typeof(Microsoft.Extensions.Logging.ILogger)) continue;
                 if (parameter.ParameterType == typeof(CloudTable)) continue;
