@@ -14,6 +14,7 @@ using System.Web.Http.Description;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Host;
+using Microsoft.WindowsAzure.Storage.Table;
 
 namespace mAdcOW.AzureFunction.SwaggerDefinition
 {
@@ -220,8 +221,18 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
                     }
                     else
                     {
-                        AddToExpando(responseDef.schema, "$ref", "#/definitions/" + name);
-                        AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType);
+                        if (returnType.IsArray)
+                        {
+                            AddToExpando(responseDef.schema, "type", "array");
+                            responseDef.schema.items = new ExpandoObject();
+                            AddToExpando(responseDef.schema.items, "$ref", "#/definitions/" + returnType.GetElementType().Name);
+                            AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType.GetElementType());
+                        }
+                        else
+                        {
+                            AddToExpando(responseDef.schema, "$ref", "#/definitions/" + name);
+                            AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType);
+                        }
                     }
                 }
             }
@@ -237,6 +248,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
                 if (parameter.ParameterType == typeof(HttpRequestMessage)) continue;
                 if (parameter.ParameterType == typeof(TraceWriter)) continue;
                 if (parameter.ParameterType == typeof(Microsoft.Extensions.Logging.ILogger)) continue;
+                if (parameter.ParameterType == typeof(CloudTable)) continue;
 
                 bool hasUriAttribute = parameter.GetCustomAttributes().Any(attr => attr is FromUriAttribute);
 
