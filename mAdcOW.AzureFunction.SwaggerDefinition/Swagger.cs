@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Dynamic;
@@ -18,6 +18,18 @@ using Microsoft.WindowsAzure.Storage.Table;
 
 namespace mAdcOW.AzureFunction.SwaggerDefinition
 {
+    [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false)]
+    public sealed class RequestTypeAttribute : Attribute
+    {
+        public RequestTypeAttribute(Type requestType)
+        {
+            this.RequestType = requestType;
+        }
+
+        /// <summary>Gets the response type.</summary>
+        public Type RequestType { get; private set; }
+    }
+
     public static class Swagger
     {
         const string SwaggerFunctionName = "Swagger";
@@ -245,7 +257,6 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             var parameterSignatures = new List<object>();
             foreach (ParameterInfo parameter in methodInfo.GetParameters())
             {
-                if (parameter.ParameterType == typeof(HttpRequestMessage)) continue;
                 if (parameter.ParameterType == typeof(TraceWriter)) continue;
                 if (parameter.ParameterType == typeof(Microsoft.Extensions.Logging.ILogger)) continue;
                 if (parameter.ParameterType == typeof(CloudTable)) continue;
@@ -277,19 +288,27 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
                 }
                 else
                 {
+                    var paramType = parameter.ParameterType;
+                    if (paramType == typeof(HttpRequestMessage))
+                    {
+                        var dataAttr = (RequestTypeAttribute)parameter.GetCustomAttributes(typeof(RequestTypeAttribute)).FirstOrDefault();
+                        if (dataAttr == null)
+                            continue;
+                        paramType = dataAttr.RequestType;
+                    }
                     dynamic opParam = new ExpandoObject();
                     opParam.name = parameter.Name;
                     opParam.@in = "body";
                     opParam.required = true;
                     opParam.schema = new ExpandoObject();
-                    if (parameter.ParameterType.Namespace == "System")
+                    if (paramType.Namespace == "System")
                     {
-                        SetParameterType(parameter.ParameterType, opParam.schema, null);
+                        SetParameterType(paramType, opParam.schema, null);
                     }
                     else
                     {
-                        AddToExpando(opParam.schema, "$ref", "#/definitions/" + parameter.ParameterType.Name);
-                        AddParameterDefinition((IDictionary<string, object>)doc.definitions, parameter.ParameterType);
+                        AddToExpando(opParam.schema, "$ref", "#/definitions/" + paramType.Name);
+                        AddParameterDefinition((IDictionary<string, object>)doc.definitions, paramType);
                     }
                     parameterSignatures.Add(opParam);
                 }
