@@ -36,7 +36,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
 
         [FunctionName(SwaggerFunctionName)]
         [ResponseType(typeof(void))]
-        public static async Task<HttpResponseMessage> RunAsync([HttpTrigger(AuthorizationLevel.Function, "get")]HttpRequestMessage req)
+        public static async Task<HttpResponseMessage> RunAsync([HttpTrigger(AuthorizationLevel.Function, "get")]HttpRequestMessage req, TraceWriter log)
         {
             var assembly = Assembly.GetExecutingAssembly();
 
@@ -53,7 +53,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
                 doc.schemes = new[] { "http" };
             }
             doc.definitions = new ExpandoObject();
-            doc.paths = GeneratePaths(assembly, doc);
+            doc.paths = GeneratePaths(assembly, doc, log);
             doc.securityDefinitions = GenerateSecurityDefinitions();
 
             return await Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
@@ -80,7 +80,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             return securityDefinitions;
         }
 
-        private static dynamic GeneratePaths(Assembly assembly, dynamic doc)
+        private static dynamic GeneratePaths(Assembly assembly, dynamic doc, TraceWriter log)
         {
             dynamic paths = new ExpandoObject();
             var methods = assembly.GetTypes()
@@ -123,7 +123,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
                     operation.operationId = ToTitleCase(functionAttr.Name) + ToTitleCase(verb);
                     operation.produces = new[] { "application/json" };
                     operation.consumes = new[] { "application/json" };
-                    operation.parameters = GenerateFunctionParametersSignature(methodInfo, route, doc);
+                    operation.parameters = GenerateFunctionParametersSignature(methodInfo, route, doc, log);
 
                     // Summary is title
                     operation.summary = GetFunctionName(methodInfo, functionAttr.Name);
@@ -252,14 +252,20 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             return responses;
         }
 
-        private static List<object> GenerateFunctionParametersSignature(MethodInfo methodInfo, string route, dynamic doc)
+        private static List<object> GenerateFunctionParametersSignature(MethodInfo methodInfo, string route, dynamic doc, TraceWriter log)
         {
             var parameterSignatures = new List<object>();
             foreach (ParameterInfo parameter in methodInfo.GetParameters())
             {
+                log?.Info($"Indexing {methodInfo.Name}::{parameter.Name} ({parameter.ParameterType.ToString()})");
                 if (parameter.ParameterType == typeof(TraceWriter)) continue;
                 if (parameter.ParameterType == typeof(Microsoft.Extensions.Logging.ILogger)) continue;
                 if (parameter.ParameterType == typeof(CloudTable)) continue;
+                if (parameter.ParameterType.IsArray)
+                {
+                    log?.Warning($"{parameter.Name} is of type Array and will be skipped.");
+                    continue;
+                }
 
                 bool hasUriAttribute = parameter.GetCustomAttributes().Any(attr => attr is FromUriAttribute);
 
@@ -378,11 +384,17 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             return objDef;
         }
 
-        private static void SetParameterType(Type parameterType, dynamic opParam, dynamic definitions)
+        private static Type SetParameterType(Type parameterType, dynamic opParam, dynamic definitions)
         {
             var inputType = parameterType;
+            var name = parameterType.Name;
 
             var setObject = opParam;
+            if (inputType.IsGenericType && inputType.GetGenericTypeDefinition() == typeof(Nullable<>))
+            {
+                inputType = parameterType.GetGenericArguments()[0];
+                opParam.required = false;
+            }
             if (inputType.IsArray)
             {
                 opParam.type = "array";
@@ -390,7 +402,7 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
                 setObject = opParam.items;
                 parameterType = parameterType.GetElementType();
             }
-            else if (inputType.IsGenericType)
+            else if (inputType.IsGenericType && inputType.GetGenericTypeDefinition() == typeof(List<>))
             {
                 opParam.type = "array";
                 opParam.items = new ExpandoObject();
@@ -444,9 +456,11 @@ namespace mAdcOW.AzureFunction.SwaggerDefinition
             }
             else if (definitions != null)
             {
-                AddToExpando(setObject, "$ref", "#/definitions/" + parameterType.Name);
+                AddToExpando(setObject, "$ref", "#/definitions/" + name);
                 AddParameterDefinition((IDictionary<string, object>)definitions, parameterType);
             }
+
+            return parameterType;
         }
 
         public static string ToTitleCase(string str)
