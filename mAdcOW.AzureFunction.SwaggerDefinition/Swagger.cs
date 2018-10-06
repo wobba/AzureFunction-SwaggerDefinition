@@ -251,29 +251,31 @@ namespace AzureFunctionSwaggerDefinition
                             }
                             else
                             {
-                                AddToExpando(responseDef.schema, "$ref", "#/definitions/" + name);
-                                AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType);
+                                AddDefinition(doc, responseDef.schema, returnType, name);
                             }
                         }
                         else if (returnType.IsArray)
                         {
                             AddToExpando(responseDef.schema, "type", "array");
                             responseDef.schema.items = new ExpandoObject();
-                            AddToExpando(responseDef.schema.items, "$ref", "#/definitions/" + returnType.GetElementType().Name);
-                            AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType.GetElementType());
+                            AddDefinition(doc, responseDef.schema.items, returnType, returnType.GetElementType().Name);
                         }
                         else
                         {
-                            AddToExpando(responseDef.schema, "$ref", "#/definitions/" + name);
-                            AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType);
+                            AddDefinition(doc, responseDef.schema, returnType, name);
                         }
                     }
                 }
-
                 AddToExpando(responses, $"{responseCode}", responseDef);
             }
 
             return responses;
+        }
+
+        private static void AddDefinition(dynamic doc, dynamic responseDefNode, Type returnType, string name)
+        {
+            AddToExpando(responseDefNode.schema, "$ref", "#/definitions/" + name);
+            AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType);
         }
 
         private static List<object> GenerateFunctionParametersSignature(MethodInfo methodInfo, string route, dynamic doc)
