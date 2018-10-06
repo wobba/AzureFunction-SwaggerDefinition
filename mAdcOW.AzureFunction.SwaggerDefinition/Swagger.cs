@@ -26,6 +26,7 @@ using System.Web.Http.Description;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 #endif
+using Microsoft.WindowsAzure.Storage.Table;
 
 namespace AzureFunctionSwaggerDefinition
 {
@@ -290,6 +291,7 @@ namespace AzureFunctionSwaggerDefinition
                 if (parameter.ParameterType == typeof(ExecutionContext)) continue;
                 if (parameter.ParameterType == typeof(TraceWriter)) continue;
                 if (parameter.ParameterType == typeof(Microsoft.Extensions.Logging.ILogger)) continue;
+                if (parameter.ParameterType == typeof(CloudTable)) continue;
 
                 bool hasUriAttribute = parameter.GetCustomAttributes().Any(attr => attr is FromUriAttribute);
 
