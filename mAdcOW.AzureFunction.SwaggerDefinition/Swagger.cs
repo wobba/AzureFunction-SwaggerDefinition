@@ -255,6 +255,13 @@ namespace AzureFunctionSwaggerDefinition
                                 AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType);
                             }
                         }
+                        else if (returnType.IsArray)
+                        {
+                            AddToExpando(responseDef.schema, "type", "array");
+                            responseDef.schema.items = new ExpandoObject();
+                            AddToExpando(responseDef.schema.items, "$ref", "#/definitions/" + returnType.GetElementType().Name);
+                            AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType.GetElementType());
+                        }
                         else
                         {
                             AddToExpando(responseDef.schema, "$ref", "#/definitions/" + name);
