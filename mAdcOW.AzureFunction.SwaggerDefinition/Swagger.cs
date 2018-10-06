@@ -274,7 +274,7 @@ namespace AzureFunctionSwaggerDefinition
 
         private static void AddDefinition(dynamic doc, dynamic responseDefNode, Type returnType, string name)
         {
-            AddToExpando(responseDefNode.schema, "$ref", "#/definitions/" + name);
+            AddToExpando(responseDefNode, "$ref", "#/definitions/" + name);
             AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType);
         }
 
