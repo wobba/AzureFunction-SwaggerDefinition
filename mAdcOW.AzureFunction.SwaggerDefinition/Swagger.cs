@@ -263,7 +263,7 @@ namespace AzureFunctionSwaggerDefinition
                     }
                 }
 
-                AddToExpando(responses, $"{responseCode}", responseDef); //JJ: made responseCode a variable
+                AddToExpando(responses, $"{responseCode}", responseDef);
             }
 
             return responses;
@@ -274,13 +274,12 @@ namespace AzureFunctionSwaggerDefinition
             var parameterSignatures = new List<object>();
             foreach (ParameterInfo parameter in methodInfo.GetParameters())
             {
-#if SWAGGER_NETCLASSIC
                 if (parameter.ParameterType == typeof(HttpRequestMessage)) continue;
-#else
+#if !SWAGGER_NETCLASSIC
                 if (parameter.ParameterType == typeof(HttpRequest)) continue;
 #endif
                 if (parameter.ParameterType == typeof(ExecutionContext)) continue;
-                if (parameter.ParameterType == typeof(TraceWriter)) continue; //JJ: added this :)
+                if (parameter.ParameterType == typeof(TraceWriter)) continue;
                 if (parameter.ParameterType == typeof(Microsoft.Extensions.Logging.ILogger)) continue;
 
                 bool hasUriAttribute = parameter.GetCustomAttributes().Any(attr => attr is FromUriAttribute);
