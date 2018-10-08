@@ -20,7 +20,7 @@ using System.Web.Http.Description;
 using Microsoft.AspNetCore.Mvc;
 #endif
 
-namespace mAdcOW.AzureFunction.SwaggerDefinition
+namespace AzureFunctionSwaggerDefinition
 {
     public static class Templates
     {
