@@ -201,7 +201,6 @@ namespace AzureFunctionSwaggerDefinition
                     responseCode = 200;
 #else
                     responseCode = responseTypeAttr.StatusCode;
-                    returnType = responseTypeAttr.Type;
 #endif
                 }
                 if (returnType.IsGenericType)
@@ -251,31 +250,22 @@ namespace AzureFunctionSwaggerDefinition
                             }
                             else
                             {
-                                AddDefinition(doc, responseDef.schema, returnType, name);
+                                AddToExpando(responseDef.schema, "$ref", "#/definitions/" + name);
+                                AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType);
                             }
-                        }
-                        else if (returnType.IsArray)
-                        {
-                            AddToExpando(responseDef.schema, "type", "array");
-                            responseDef.schema.items = new ExpandoObject();
-                            AddDefinition(doc, responseDef.schema.items, returnType, returnType.GetElementType().Name);
                         }
                         else
                         {
-                            AddDefinition(doc, responseDef.schema, returnType, name);
+                            AddToExpando(responseDef.schema, "$ref", "#/definitions/" + name);
+                            AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType);
                         }
                     }
                 }
+
                 AddToExpando(responses, $"{responseCode}", responseDef);
             }
 
             return responses;
-        }
-
-        private static void AddDefinition(dynamic doc, dynamic responseDefNode, Type returnType, string name)
-        {
-            AddToExpando(responseDefNode, "$ref", "#/definitions/" + name);
-            AddParameterDefinition((IDictionary<string, object>)doc.definitions, returnType);
         }
 
         private static List<object> GenerateFunctionParametersSignature(MethodInfo methodInfo, string route, dynamic doc)
