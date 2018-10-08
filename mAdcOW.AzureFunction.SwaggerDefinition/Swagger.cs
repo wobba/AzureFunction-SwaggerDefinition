@@ -202,7 +202,6 @@ namespace AzureFunctionSwaggerDefinition
                     responseCode = 200;
 #else
                     responseCode = responseTypeAttr.StatusCode;
-                    returnType = responseTypeAttr.Type;
 #endif
                 }
                 if (returnType.IsGenericType)
