@@ -291,6 +291,7 @@ namespace AzureFunctionSwaggerDefinition
                 if (parameter.ParameterType == typeof(TraceWriter)) continue;
                 if (parameter.ParameterType == typeof(Microsoft.Extensions.Logging.ILogger)) continue;
                 if (parameter.ParameterType == typeof(CloudTable)) continue;
+                if (parameter.ParameterType == typeof(System.Threading.CancellationToken)) continue;
 
                 bool hasUriAttribute = parameter.GetCustomAttributes().Any(attr => attr is FromUriAttribute);
 
